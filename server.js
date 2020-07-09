@@ -495,7 +495,7 @@ function updateUser(usr) {
 }
 
 // Start Server
-app.listen(3000);
+app.listen(8080);
 
 //Helpers
 function userDTOFrom(user) {
