@@ -1,0 +1,28 @@
+{
+  "name": "door-assembly-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "ds": "nodemon server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "homepage": "http://JonyHM.github.io/door-assembly-api",
+  "dependencies": {
+    "bcrypt": "^5.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "jsonwebtoken": "^8.5.1",
+    "sqlite3": "^4.2.0"
+  },
+  "devDependencies": {
+    "gh-pages": "^3.1.0",
+    "nodemon": "^2.0.4"
+  }
+}
