@@ -1,9 +1,11 @@
 require('dotenv').config();
+
 const sqlite3 = require('sqlite3').verbose();
-const jwt = require('jsonwebtoken');
 const express = require('express');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 var cors = require('cors');
+
 const app = express();
 
 app.use(express.json());
@@ -13,112 +15,177 @@ app.use(cors());
   POST
 {
   name: string,
+  address: string,
+  age: int,
   username: string,
   password: string
 }
 */
-app.post('/users', authenticateToken, async (req, res) => {
-  try {
-    const hashedPasswd = await bcrypt.hash(req.body.password, 10);
-    const user = {
-      name: req.body.name,
-      username: req.body.username,
-      password: hashedPasswd,
-      role: user.role
-    }
+app.post('/user', authenticateToken, async (req, res) => {
+  const hashedPasswd = await bcrypt.hash(req.body.password, 10);
+  const user = {
+    name: req.body.name,
+    address: req.body.address,
+    age: parseInt(req.body.age, 10),
+    username: req.body.username,
+    password: hashedPasswd,
+    role: user.role
+  }
 
-    insert(user)
-
-    res.status(201).json({
-      "message": "Usuário criado com sucesso",
-      "content": {
-        "user": userDTOFrom(user)
-      },
-      "error": null
-    });
-  } catch (err) {
+  insert(user)
+    .then(user => {
+      res.status(201).json({
+        "message": "Usuário criado com sucesso",
+        "content": {
+          "user": userDTOFrom(user)
+        },
+        "error": null
+      }
+    );
+  })
+  .catch(err => {
     res.status(500).json({
       "message": "Ocorreu um erro interno",
       "content": null,
       "error": err.message
     });
+  });
+});
+
+/*
+  GET
+*/
+app.get('/user', authenticateToken, async (req, res) => {
+  let id = req.query.id;
+
+  if(id) {
+    getUser(id)
+      .then(user => {
+        res.status(200).json({
+          "message": "Usuário encontrado",
+          "content": {
+            "user": userDTOFrom(user)
+          },
+          "error": null
+        }
+      );
+    })
+    .catch(err => {
+      res.status(500).json({
+        "message": "Ocorreu um erro interno",
+        "content": null,
+        "error": err.message
+      });
+    });
+
+  } else {
+    const dtos = [];
+
+    selectAll()
+      .then(users => {
+        users.forEach(user => dtos.push(userDTOFrom(user)));
+        res.status(200).json({
+          "message": "Usuários encontrados",
+          "content": {
+            "users": dtos
+          },
+          "error": null
+        }
+      );
+    })
+    .catch(err => {
+      res.status(500).json({
+        "message": "Ocorreu um erro interno",
+        "content": null,
+        "error": err.message
+      });
+    });
   }
 });
 
 /*
-  GET
+  PUT
+  {
+    name: string,
+    address: string,
+    age: int,
+    username: string,
+    password: string
+  }
 */
-app.get('/users', authenticateToken, async (req, res) => {
-  const dtos = [];
+app.put('/user', authenticateToken, async (req, res) => {
+  const hashedPasswd = await bcrypt.hash(req.body.password, 10);
+  const user = {
+    name: req.body.name,
+    address: req.body.address,
+    age: parseInt(req.body.age, 10),
+    username: req.body.username,
+    password: hashedPasswd,
+    role: user.role
+  }
 
-  selectAll()
-    .then(users => {
-      users.forEach(user => dtos.push(userDTOFrom(user)));
-
-      res.status(200).json({
-        "message": "Usuários encontrados",
+  updateUser(user)
+    .then(user => {
+      res.status(201).json({
+        "message": "Usuário atualizado com sucesso",
         "content": {
-          "users": dtos
+          "user": userDTOFrom(user)
         },
         "error": null
-      });
-    })
-    .catch(err => {
-      res.status(500).json({
-        "message": "Ocorreu um erro interno",
-        "content": null,
-        "error": err.message
-      });
-    }
-  );
+      }
+    );
+  })
+  .catch(err => {
+    res.status(500).json({
+      "message": "Ocorreu um erro interno",
+      "content": null,
+      "error": err.message
+    });
+  });
 });
 
 /*
-  GET
+  DELETE
 */
-app.get('/score', authenticateToken, async (req, res) => {
-  getScores()
-    .then(scores => {
-      res.status(200).json({
-        "message": "Scores encontrados",
-        "content": {
-          "scores": scores
-        },
+app.delete('/user', authenticateToken, async (req, res) => {
+  let id = req.query.id;
+  deleteUser(id)
+    .then(success => {
+      res.status(201).json({
+        "message": "Usuário atualizado com sucesso",
+        "content": success,
         "error": null
-      });
-    })
-    .catch(err => {
-      res.status(500).json({
-        "message": "Ocorreu um erro interno",
-        "content": null,
-        "error": err.message
-      });
-    }
-  );
+      }
+    );
+  }).catch(err => {
+    res.status(500).json({
+      "message": "Ocorreu um erro interno",
+      "content": null,
+      "error": err.message
+    });
+  });
 });
 
+/** TICKET */
 /* 
   POST
 {
   userId: number,
-  percent: number
+  description: string
 }
 */
-app.post('/score', authenticateToken, async (req, res) => {
-  const score = {
-    userId: req.body.userId,
-    name: req.body.name,
-    percent: req.body.percent
+app.post('/ticket', authenticateToken, async (req, res) => {
+  const ticket = {
+    user_id: req.body.user_id,
+    description: req.body.description
   }
-
-  console.log(score);
   
-  insertScore(score)
+  insertTicket(ticket)
     .then(response => {
       res.status(200).json({
-        "message": "Score adicionado com sucesso",
+        "message": "Chamado criado com sucesso",
         "content": {
-          "user": response
+          "ticket": response
         },
         "error": null
       });
@@ -131,6 +198,103 @@ app.post('/score', authenticateToken, async (req, res) => {
       });
     }
   );
+});
+
+/** 
+ * GET */
+app.get('/ticket', authenticateToken, async (req, res) => {
+  let id = req.query.id;
+
+  if(id) {
+    const ticketsDto = [];
+
+    getAllTickets(id)
+      .then(tickets => {
+        tickets.forEach(ticket => ticketsDto.push(ticket));
+        res.status(200).json({
+          "message": "Chamados encontrados",
+          "content": {
+            "users": ticketsDto
+          },
+          "error": null
+        }
+      );
+    })
+    .catch(err => {
+      res.status(500).json({
+        "message": "Ocorreu um erro interno",
+        "content": null,
+        "error": err.message
+      });
+    });
+  } else {
+    res.status(500).json({
+      "message": "Erro ao encontrar chamados",
+      "content": null,
+      "error": "user ID missing from query param"
+    });
+  }
+});
+
+/** DELETE */
+app.delete('/ticket', authenticateToken, async (req, res) => {
+  let id = req.query.id;
+
+  if(id) {
+    deleteTicket(id)
+      .then(success => {
+        res.status(201).json({
+          "message": "Chamado excluído com sucesso",
+          "content": success,
+          "error": null
+        }
+      );
+    }).catch(err => {
+      res.status(500).json({
+        "message": "Ocorreu um erro interno",
+        "content": null,
+        "error": err.message
+      });
+    });
+
+  } else {
+    res.status(500).json({
+      "message": "Erro ao encontrar chamado",
+      "content": null,
+      "error": "user ID missing from query param"
+    });
+
+  }
+});
+
+/** PUT 
+ * {
+    description: string
+   }
+*/
+app.put('/ticket', authenticateToken, async (req, res) => {
+  const ticket = {
+    description: req.body.description
+  }
+
+  updateTicket(ticket)
+    .then(ticket => {
+      res.status(201).json({
+        "message": "Chamado atualizado com sucesso",
+        "content": {
+          "user": ticket
+        },
+        "error": null
+      }
+    );
+  })
+  .catch(err => {
+    res.status(500).json({
+      "message": "Ocorreu um erro interno",
+      "content": null,
+      "error": err.message
+    });
+  });
 });
 
 /*
@@ -155,7 +319,14 @@ app.post('/token', (req, res) => {
           return res.sendStatus(403);
         }
         
-        const accessToken = generateToken({ id: user.id, name: user.name, username: user.username });
+        const accessToken = generateToken(
+          { 
+            id: user.id, 
+            name: user.name, 
+            username: user.username 
+          }
+        );
+        
         res.status(200).json({
           "message": "Token atualizado com sucesso",
           "content": {
@@ -300,6 +471,8 @@ async function createUser() {
     const hashedPasswd = await bcrypt.hash('user', 10);
     const user = {
       name: 'Usuário',
+      address: 'Rua do Usuário',
+      age: '50',
       username: 'user',
       password: hashedPasswd,
       role: 'USR'
@@ -316,6 +489,8 @@ async function createAdmin() {
     const hashedPasswd = await bcrypt.hash('admin', 10);
     const user = {
       name: 'Administrador',
+      address: 'Rua do Admin',
+      age: '000',
       username: 'admin',
       password: hashedPasswd,
       role: 'ADM'
@@ -362,37 +537,29 @@ let db = new sqlite3.Database(':memory:', (err) => {
 
 // DB functions
 function createTables() {
+  db.get("PRAGMA foreign_keys = ON");
+  
   db.run(`CREATE TABLE user(
-    id INTEGER PRIMARY KEY AUTOINCREMENT, 
-    name TEXT NOT NULL, username TEXT NOT NULL, 
+    user_id INTEGER PRIMARY KEY AUTOINCREMENT, 
+    name TEXT NOT NULL, 
+    address TEXT, 
+    age INTEGER, 
+    username TEXT NOT NULL, 
     password TEXT NOT NULL, 
     token TEXT,
     role TEXT);`
   );
 
-  db.run(`CREATE TABLE attempt(
-    id INTEGER PRIMARY KEY AUTOINCREMENT, 
-    name TEXT NOT NULL,
-    userId INTEGER NOT NULL, 
-    percent INTEGER NOT NULL);`
+  db.run(`CREATE TABLE ticket(
+    ticket_id INTEGER PRIMARY KEY AUTOINCREMENT, 
+    user_id INTEGER INTEGER REFERENCES user(user_id), 
+    description TEXT);`
   );
   
   console.log('Tables has been created');
 }
 
-function insertScore(score) {
-  return new Promise((resolve, reject) => {
-    db.run(`INSERT INTO attempt(userId,name,percent) VALUES(?,?,?)`, 
-      [score.userId, score.name, score.percent], err => {
-      
-      if(err) {
-        console.log(err.message);
-        throw err
-      }
-      resolve(score);
-    });
-  });
-}
+/** USER */
 
 function insert(user) {
   return new Promise((resolve, reject) => {
@@ -404,22 +571,6 @@ function insert(user) {
         throw err
       }
       resolve(user);
-    });
-  });
-}
-
-function getScores() {
-  const scores = [];
-  return new Promise((resolve, reject) => {
-    db.all(`SELECT * FROM attempt`, [], (err, rows) => {
-      if (err) {
-        console.log(err.message);  
-        throw err;
-      }
-      rows.forEach((row) => {
-        scores.push(row);
-      });  
-      resolve(scores);
     });
   });
 }
@@ -454,7 +605,7 @@ function selectUser(username) {
 
 function getUser(id) {
   return new Promise((resolve, reject) => {
-    db.get(`SELECT * FROM user WHERE id = ?`, [id], (err, row) => {
+    db.get(`SELECT * FROM user WHERE user_id = ?`, [id], (err, row) => {
       if (err) {
         console.log(err.message);
         throw err;
@@ -467,19 +618,112 @@ function getUser(id) {
 function updateUser(usr) { 
   let id = usr.id;
    
-  let options = [usr.name, usr.username, usr.password, usr.token, usr.role, id];
-  console.log(options);
-  
+  let options = [
+    usr.name, 
+    usr.username, 
+    usr.address, 
+    usr.age,
+    usr.password, 
+    usr.token, 
+    usr.role, 
+    id];  
 
   return new Promise((resolve, reject) => { 
     db.run(
       `UPDATE user SET 
          name = COALESCE(?,name), 
+         address = COALESCE(?,address), 
+         age = COALESCE(?,age), 
          username = COALESCE(?,username), 
          password = COALESCE(?,password),
          token = COALESCE(?,token),
          role = COALESCE(?,role)
-         WHERE id = ?`, options, (err, result) => {
+      WHERE user_id = ?`, options, (err, result) => {
+        
+      if (err){
+        throw err;
+      }  
+      resolve(result);
+    });
+  });
+}
+
+function deleteUser(id) { 
+  return new Promise((resolve, reject) => { 
+    db.run(
+      `DELETE FROM user
+        WHERE user_id = ?`, id, (err, result) => {
+        
+      if (err){
+        throw err;
+      }  
+      resolve(result);
+    });
+  });
+}
+
+/** TICKET */
+function getAllTickets(userId) {
+  const tickets = [];
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT * FROM ticket
+        WHERE user_id = ?`, userId, (err, rows) => {
+
+      if (err) {
+        console.log(err.message);  
+        throw err;
+      }
+
+      rows.forEach((row) => {
+        tickets.push(row);
+      });  
+      resolve(users);
+    });
+  });
+}
+
+function insertTicket(ticket) {
+  return new Promise((resolve, reject) => {
+    db.run(`INSERT INTO ticket(user_id,description) VALUES(?,?)`, 
+      [ticket.user_id, ticket.description], err => {
+      
+      if(err) {
+        console.log(err.message);
+        throw err
+      }
+      resolve(ticket);
+    });
+  });
+}
+
+function updateTicket(ticket) { 
+  let id = ticket.user_id;
+   
+  let options = [
+    ticket.description, 
+    id
+  ];  
+
+  return new Promise((resolve, reject) => { 
+    db.run(
+      `UPDATE ticket SET 
+         description = COALESCE(?,address)
+      WHERE user_id = ?`, options, (err, result) => {
+        
+      if (err){
+        throw err;
+      }  
+      resolve(result);
+    });
+  });
+}
+
+function deleteTicket(id) { 
+  return new Promise((resolve, reject) => { 
+    db.run(
+      `DELETE FROM ticket
+        WHERE ticket_id = ?`, id, (err, result) => {
         
       if (err){
         throw err;
@@ -499,6 +743,8 @@ function userDTOFrom(user) {
   return {
     id: user.id,
     name: user.name,
+    address: user.address,
+    age: user.age,
     username: user.username,
     role: user.role
   }
